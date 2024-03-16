@@ -1,109 +1,87 @@
 {
-  "log": {
-    "access": "",
-    "error": "",
-    "loglevel": "none",
-    "dnsLog": false
-  },
   "dns": {
-    "tag": "dns",
     "hosts": {
-      "cloudflare-dns.com": [
-        "104.16.248.249",
-        "104.16.249.249"
-      ],
-      "domain:youtube.com": [
-        "google.com"
-      ]
+      "domain:googleapis.cn": "googleapis.com"
     },
     "servers": [
-      "https://cloudflare-dns.com/dns-query"
+      {
+        "address": "fakedns",
+        "domains": [
+          "geosite:cn"
+        ]
+      },
+      "1.1.1.1"
     ]
   },
+  "fakedns": [
+    {
+      "ipPool": "198.18.0.0/15",
+      "poolSize": 10000
+    }
+  ],
   "inbounds": [
     {
-      "domainOverride": [
-        "http",
-        "tls"
-      ],
-      "protocol": "socks",
-      "tag": "socks-in",
       "listen": "127.0.0.1",
       "port": 10808,
+      "protocol": "socks",
       "settings": {
         "auth": "noauth",
         "udp": true,
         "userLevel": 8
       },
       "sniffing": {
-        "enabled": true,
         "destOverride": [
           "http",
-          "tls"
-        ]
-      }
+          "tls",
+          "fakedns"
+        ],
+        "enabled": true
+      },
+      "tag": "socks"
     },
     {
-      "protocol": "http",
-      "tag": "http-in",
       "listen": "127.0.0.1",
       "port": 10809,
+      "protocol": "http",
       "settings": {
         "userLevel": 8
       },
-      "sniffing": {
-        "enabled": true,
-        "destOverride": [
-          "http",
-          "tls"
-        ]
-      }
+      "tag": "http"
+    },
+    {
+      "listen": "127.0.0.1",
+      "port": 10853,
+      "protocol": "dokodemo-door",
+      "settings": {
+        "address": "1.1.1.1",
+        "network": "tcp,udp",
+        "port": 53
+      },
+      "tag": "dns-in"
     }
   ],
+  "log": {
+    "loglevel": "warning"
+  },
   "outbounds": [
     {
-      "protocol": "freedom",
-      "tag": "fragment-out",
-      "domainStrategy": "UseIP",
-      "sniffing": {
-        "enabled": true,
-        "destOverride": [
-          "http",
-          "tls"
-        ]
+      "mux": {
+        "concurrency": -1,
+        "enabled": false,
+        "xudpConcurrency": 8,
+        "xudpProxyUDP443": ""
       },
-      "settings": {
-        "fragment": {
-          "packets": "tlshello",
-          "length": "100-200",
-          "interval": "10-20"
-        }
-      },
-      "streamSettings": {
-        "sockopt": {
-          "tcpNoDelay": true,
-          "domainStrategy": "UseIP"
-        }
-      }
-    },
-    {
-      "protocol": "dns",
-      "tag": "dns-out"
-    },
-    {
       "protocol": "vless",
-      "tag": "fakeproxy-out",
-      "domainStrategy": "",
       "settings": {
         "vnext": [
           {
-            "address": "google.com",
+            "address": "edge.hosseinsenator13.workers.dev",
             "port": 443,
             "users": [
               {
                 "encryption": "none",
                 "flow": "",
-                "id": "UUID",
+                "id": "f8a7f4e0-8215-49bf-b0f9-b3c887cb1563",
                 "level": 8,
                 "security": "auto"
               }
@@ -116,69 +94,61 @@
         "security": "tls",
         "tlsSettings": {
           "allowInsecure": false,
-          "alpn": [
-            "h2",
-            "http/1.1"
-          ],
           "fingerprint": "randomized",
           "publicKey": "",
-          "serverName": "google.com",
+          "serverName": "edge.hosseinsenator13.workers.dev",
           "shortId": "",
           "show": false,
           "spiderX": ""
         },
         "wsSettings": {
           "headers": {
-            "Host": "google.com"
+            "Host": "edge.hosseinsenator13.WOrKers.dev"
           },
-          "path": "/"
+          "path": "/?ed=2048"
         }
       },
-      "mux": {
-        "concurrency": 8,
-        "enabled": false
-      }
+      "tag": "proxy"
+    },
+    {
+      "protocol": "freedom",
+      "settings": {
+        "domainStrategy": "UseIP"
+      },
+      "tag": "direct"
+    },
+    {
+      "protocol": "blackhole",
+      "settings": {
+        "response": {
+          "type": "http"
+        }
+      },
+      "tag": "block"
+    },
+    {
+      "protocol": "dns",
+      "tag": "dns-out"
     }
   ],
-  "policy": {
-    "levels": {
-      "8": {
-        "connIdle": 300,
-        "downlinkOnly": 1,
-        "handshake": 4,
-        "uplinkOnly": 1
-      }
-    },
-    "system": {
-      "statsOutboundUplink": true,
-      "statsOutboundDownlink": true
-    }
-  },
   "routing": {
     "domainStrategy": "IPIfNonMatch",
     "rules": [
       {
         "inboundTag": [
-          "socks-in",
-          "http-in"
+          "dns-in"
         ],
-        "type": "field",
-        "port": "8443",
         "outboundTag": "dns-out",
-        "enabled": true
+        "type": "field"
       },
       {
-        "inboundTag": [
-          "socks-in",
-          "http-in"
+        "ip": [
+          "1.1.1.1"
         ],
-        "type": "field",
-        "port": "0-65535",
-        "outboundTag": "fragment-out",
-        "enabled": true
+        "outboundTag": "proxy",
+        "port": "53",
+        "type": "field"
       }
-    ],
-    "strategy": "rules"
-  },
-  "stats": {}
+    ]
+  }
 }
